@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="100%" role="img" aria-labelledby="title desc">
   <title id="title">freebox-vm architecture</title>
-  <desc id="desc">image, terraform and ansible build and deploy a VM on the Freebox. The VM runs a Docker Compose stack of Traefik, Gogs, Doco-CD, gogs-mirror and Hermes Agent, with external services around it.</desc>
+  <desc id="desc">image, terraform and ansible build and deploy a VM on the Freebox. The VM runs a Docker Compose stack of Traefik, Forgejo, Doco-CD, forgejo-mirror and Hermes Agent, with external services around it.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/>
@@ -39,7 +39,7 @@
     <text x="540" y="246" font-size="20" fill="#8b949e">TLS via Let's Encrypt</text>
 
     <rect x="840" y="146" width="300" height="110" rx="10" fill="#161b22" stroke="#1f6feb" stroke-width="2"/>
-    <text x="860" y="188" font-size="24" font-weight="700" fill="#f0f6fc">Gogs</text>
+    <text x="860" y="188" font-size="24" font-weight="700" fill="#f0f6fc">Forgejo</text>
     <text x="860" y="224" font-size="20" fill="#8b949e">SSH on port 2222</text>
     <text x="860" y="246" font-size="20" fill="#8b949e">Git server</text>
 
@@ -49,9 +49,9 @@
     <text x="540" y="376" font-size="20" fill="#8b949e">Uses Docker socket</text>
 
     <rect x="840" y="276" width="300" height="110" rx="10" fill="#161b22" stroke="#d29922" stroke-width="2"/>
-    <text x="860" y="318" font-size="24" font-weight="700" fill="#f0f6fc">gogs-mirror</text>
+    <text x="860" y="318" font-size="24" font-weight="700" fill="#f0f6fc">forgejo-mirror</text>
     <text x="860" y="354" font-size="20" fill="#8b949e">Hourly GitHub mirrors</text>
-    <text x="860" y="376" font-size="20" fill="#8b949e">Private Gogs copies</text>
+    <text x="860" y="376" font-size="20" fill="#8b949e">Private Forgejo copies</text>
 
     <rect x="520" y="406" width="300" height="110" rx="10" fill="#161b22" stroke="#f78166" stroke-width="2"/>
     <text x="540" y="448" font-size="24" font-weight="700" fill="#f0f6fc">Hermes Agent</text>

@@ -1,14 +1,13 @@
-- name: Deploy Traefik, Gogs, Doco-CD and Hermes
+- name: Deploy Traefik, Forgejo, Doco-CD and Hermes
   hosts: freebox_vm
   vars:
     stack_dir: /opt/stack
     stack_domain: "{{ lookup('ansible.builtin.env', 'STACK_DOMAIN', default=Undefined) }}"
-    gogs_uid: 1000
-    gogs_ssh_port: 2222
-    gogs_secret_key: "{{ lookup('ansible.builtin.env', 'GOGS_SECRET_KEY', default=Undefined) }}"
-    gogs_admin_user: "{{ lookup('ansible.builtin.env', 'GOGS_ADMIN_USER', default=Undefined) }}"
-    gogs_admin_password: "{{ lookup('ansible.builtin.env', 'GOGS_ADMIN_PASSWORD', default=Undefined) }}"
-    gogs_admin_email: "{{ lookup('ansible.builtin.env', 'GOGS_ADMIN_EMAIL', default=Undefined) }}"
+    forgejo_ssh_port: 2222
+    forgejo_secret_key: "{{ lookup('ansible.builtin.env', 'FORGEJO_SECRET_KEY', default=Undefined) }}"
+    forgejo_admin_user: "{{ lookup('ansible.builtin.env', 'FORGEJO_ADMIN_USER', default=Undefined) }}"
+    forgejo_admin_password: "{{ lookup('ansible.builtin.env', 'FORGEJO_ADMIN_PASSWORD', default=Undefined) }}"
+    forgejo_admin_email: "{{ lookup('ansible.builtin.env', 'FORGEJO_ADMIN_EMAIL', default=Undefined) }}"
     doco_poll_url: "{{ lookup('ansible.builtin.env', 'DOCO_POLL_URL') }}"
     doco_git_token: "{{ lookup('ansible.builtin.env', 'DOCO_GIT_TOKEN') }}"
     github_mirror_token: "{{ lookup('ansible.builtin.env', 'GITHUB_MIRROR_TOKEN') }}"
@@ -40,23 +39,6 @@
               extra_usage_reserve_percent: 97
               max_concurrent: 1
   tasks:
-    - name: Create the Gogs config directory
-      ansible.builtin.file:
-        path: "{{ stack_dir }}/gogs/gogs/conf"
-        state: directory
-        owner: "{{ gogs_uid }}"
-        group: "{{ gogs_uid }}"
-        mode: "0700"
-
-    - name: Write the Gogs config
-      ansible.builtin.template:
-        src: gogs-app.ini.j2
-        dest: "{{ stack_dir }}/gogs/gogs/conf/app.ini"
-        owner: "{{ gogs_uid }}"
-        group: "{{ gogs_uid }}"
-        mode: "0600"
-      notify: Restart Gogs
-
     - name: Create the Hermes data directory
       ansible.builtin.file:
         path: "{{ stack_dir }}/hermes"
@@ -100,16 +82,17 @@
         pull: missing
         remove_orphans: true
 
-    - name: Create the Gogs admin
+    - name: Create the Forgejo admin
       ansible.builtin.command:
-        argv: [docker, compose, exec, -T, -u, git, gogs, /app/gogs/gogs, admin, create-user,
-               --config, /data/gogs/conf/app.ini, --admin, --name, "{{ gogs_admin_user }}",
-               --password, "{{ gogs_admin_password }}", --email, "{{ gogs_admin_email }}"]
+        argv: [docker, compose, exec, -T, -u, git, forgejo, forgejo, admin, user, create,
+               --config, /data/gitea/conf/app.ini, --admin, --must-change-password=false,
+               --username, "{{ forgejo_admin_user }}", --password, "{{ forgejo_admin_password }}",
+               --email, "{{ forgejo_admin_email }}"]
         chdir: "{{ stack_dir }}"
-      register: gogs_admin
-      changed_when: gogs_admin.rc == 0
-      failed_when: gogs_admin.rc != 0 and 'already exists' not in gogs_admin.stdout + gogs_admin.stderr
-      until: gogs_admin is not failed
+      register: forgejo_admin
+      changed_when: forgejo_admin.rc == 0
+      failed_when: forgejo_admin.rc != 0 and 'already exists' not in forgejo_admin.stdout + forgejo_admin.stderr
+      until: forgejo_admin is not failed
       retries: 10
       delay: 3
       no_log: true
@@ -142,10 +125,4 @@
       community.docker.docker_compose_v2:
         project_src: "{{ stack_dir }}"
         services: [hermes]
-        state: restarted
-
-    - name: Restart Gogs
-      community.docker.docker_compose_v2:
-        project_src: "{{ stack_dir }}"
-        services: [gogs]
         state: restarted

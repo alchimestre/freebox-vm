@@ -7,10 +7,10 @@ locals {
   disk_size_bytes = var.disk_size_gib * local.bytes_per_gib
 
   port_forwards = {
-    ssh      = 22
-    http     = 80
-    https    = 443
-    gogs_ssh = 2222
+    ssh         = 22
+    http        = 80
+    https       = 443
+    forgejo_ssh = 2222
   }
 }
 
