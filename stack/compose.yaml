@@ -1,0 +1,100 @@
+services:
+  traefik:
+    image: traefik:v3.8.0
+    restart: unless-stopped
+    command:
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=web
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.tlschallenge=true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks: [default, hermes-proxy]
+
+  gogs:
+    image: gogs/gogs:0.14.4
+    restart: unless-stopped
+    ports:
+      - "${GOGS_SSH_PORT:?}:22"
+    volumes:
+      - ./gogs:/data
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.gogs.rule: Host(`git.${STACK_DOMAIN:?}`)
+      traefik.http.routers.gogs.entrypoints: websecure
+      traefik.http.routers.gogs.tls.certresolver: le
+      traefik.http.services.gogs.loadbalancer.server.port: "3000"
+
+  doco-cd:
+    image: ghcr.io/kimdre/doco-cd:0.137.0
+    profiles: [cd]
+    restart: unless-stopped
+    environment:
+      GIT_ACCESS_TOKEN: ${DOCO_GIT_TOKEN:-}
+      GIT_AUTH_DOMAINS: "- domains: [gogs]"
+      POLL_CONFIG: |
+        - url: ${DOCO_POLL_URL:-}
+          reference: main
+          interval: 180
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - doco-data:/data
+
+  gogs-mirror:
+    build: ./gogs-mirror
+    profiles: [mirror]
+    restart: unless-stopped
+    depends_on: [gogs]
+    environment:
+      GITHUB_TOKEN: ${GITHUB_MIRROR_TOKEN:-}
+      GOGS_URL: http://gogs:3000
+      GOGS_USER: ${GOGS_ADMIN_USER:?}
+      GOGS_PASSWORD: ${GOGS_ADMIN_PASSWORD:?}
+      SYNC_INTERVAL_SECONDS: ${MIRROR_INTERVAL_SECONDS:?}
+    volumes:
+      - gogs-mirror:/state
+
+  hermes:
+    image: nousresearch/hermes-agent:v0.23.4
+    restart: unless-stopped
+    command: [gateway, run]
+    environment:
+      HERMES_UID: "${HERMES_UID:?}"
+      HERMES_GID: "${HERMES_UID:?}"
+      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: ${HERMES_USER:?}
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: ${HERMES_PASSWORD:?}
+      HERMES_DASHBOARD_BASIC_AUTH_SECRET: ${HERMES_SESSION_SECRET:?}
+      CLAUDE_CONFIG_DIR: /opt/data/claude
+      CLAUDE_SUBSCRIPTION_DIRECTSDK_COMMAND: /opt/data/claude-cli/bin/claude
+    volumes:
+      - ./hermes:/opt/data
+    networks: [hermes-proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: hermes-proxy
+      traefik.http.routers.hermes.rule: Host(`${STACK_DOMAIN:?}`)
+      traefik.http.routers.hermes.entrypoints: websecure
+      traefik.http.routers.hermes.tls.certresolver: le
+      traefik.http.services.hermes.loadbalancer.server.port: "${HERMES_WEBAPP_PORT:?}"
+
+networks:
+  default:
+    name: web
+  hermes-proxy:
+    name: hermes-proxy
+    ipam:
+      config:
+        - subnet: ${HERMES_PROXY_SUBNET:?}
+
+volumes:
+  letsencrypt:
+  doco-data:
+  gogs-mirror:

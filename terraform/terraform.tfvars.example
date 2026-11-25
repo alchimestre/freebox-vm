@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (gitignored) and fill in. Secrets stay in the environment.
+
+ssh_public_key    = "ssh-ed25519 AAAA... key-comment"
+duckdns_subdomain = "example"
+
+# Optional overrides:
+# freebox_storage_dir = "SSD/VMs"
+# lan_ip              = "192.168.1.45"
+# freebox_public_ipv4 = ""

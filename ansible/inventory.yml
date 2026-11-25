@@ -1,0 +1,9 @@
+all:
+  children:
+    freebox_vm:
+      hosts:
+        freebox-vm:
+          ansible_host: "{{ lookup('ansible.builtin.env', 'FREEBOX_VM_HOST', default=Undefined) }}"
+          ansible_user: freebox
+          ansible_ssh_private_key_file: "{{ lookup('ansible.builtin.env', 'FREEBOX_VM_SSH_KEY', default=Undefined) }}"
+          ansible_become: true

@@ -1,0 +1,38 @@
+- name: Keep Debian up to date
+  hosts: freebox_vm
+  vars:
+    apt_cache_valid_seconds: 3600
+    reboot_timeout_seconds: 600
+  tasks:
+    # The VM disk is a qcow2 on the Freebox USB drive (~3 MB/s): online discard and ext4 lazy inode-table init saturate it.
+    - name: Mount root without online discard or background inode-table zeroing
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^(\S+\s+/\s+ext4\s+)rw,discard,'
+        replace: '\1rw,noinit_itable,'
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: "{{ apt_cache_valid_seconds }}"
+        upgrade: dist
+        autoremove: true
+        autoclean: true
+
+    - name: Compare running kernel with newest installed kernel
+      ansible.builtin.shell: |
+        set -o pipefail
+        newest_kernel=$(ls -1 /boot/vmlinuz-* | sort -V | tail -n 1) || exit 2
+        test -n "$newest_kernel" || exit 2
+        test "$newest_kernel" != "/boot/vmlinuz-$(uname -r)"
+      args:
+        executable: /bin/bash
+      register: kernel_outdated
+      check_mode: false
+      changed_when: false
+      failed_when: kernel_outdated.rc > 1
+
+    - name: Reboot into the new kernel
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ reboot_timeout_seconds }}"
+      when: kernel_outdated.rc == 0

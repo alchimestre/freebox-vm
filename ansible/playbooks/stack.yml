@@ -1,0 +1,151 @@
+- name: Deploy Traefik, Gogs, Doco-CD and Hermes
+  hosts: freebox_vm
+  vars:
+    stack_dir: /opt/stack
+    stack_domain: "{{ lookup('ansible.builtin.env', 'STACK_DOMAIN', default=Undefined) }}"
+    gogs_uid: 1000
+    gogs_ssh_port: 2222
+    gogs_secret_key: "{{ lookup('ansible.builtin.env', 'GOGS_SECRET_KEY', default=Undefined) }}"
+    gogs_admin_user: "{{ lookup('ansible.builtin.env', 'GOGS_ADMIN_USER', default=Undefined) }}"
+    gogs_admin_password: "{{ lookup('ansible.builtin.env', 'GOGS_ADMIN_PASSWORD', default=Undefined) }}"
+    gogs_admin_email: "{{ lookup('ansible.builtin.env', 'GOGS_ADMIN_EMAIL', default=Undefined) }}"
+    doco_poll_url: "{{ lookup('ansible.builtin.env', 'DOCO_POLL_URL') }}"
+    doco_git_token: "{{ lookup('ansible.builtin.env', 'DOCO_GIT_TOKEN') }}"
+    github_mirror_token: "{{ lookup('ansible.builtin.env', 'GITHUB_MIRROR_TOKEN') }}"
+    mirror_interval_hours: 1
+    seconds_per_hour: 3600
+    hermes_proxy_subnet: 172.30.0.0/24
+    hermes_uid: 10000
+    hermes_webapp_port: 9120
+    claude_code_version: 2.1.332
+    hermes_user: "{{ lookup('ansible.builtin.env', 'HERMES_USER', default=Undefined) }}"
+    hermes_password: "{{ lookup('ansible.builtin.env', 'HERMES_PASSWORD', default=Undefined) }}"
+    hermes_session_secret: "{{ lookup('ansible.builtin.env', 'HERMES_SESSION_SECRET', default=Undefined) }}"
+    hermes_settings:
+      webapp:
+        enabled: true
+        host: 0.0.0.0
+        port: "{{ hermes_webapp_port }}"
+        public_url: https://{{ stack_domain }}
+      dashboard:
+        trusted_proxies: ["{{ hermes_proxy_subnet }}"]
+      model:
+        provider: claude-subscription-directsdk-experimental
+        default: sonnet
+      plugins:
+        entries:
+          claude-subscription-directsdk-experimental:
+            settings:
+              extra_usage: stop
+              extra_usage_reserve_percent: 97
+              max_concurrent: 1
+  tasks:
+    - name: Create the Gogs config directory
+      ansible.builtin.file:
+        path: "{{ stack_dir }}/gogs/gogs/conf"
+        state: directory
+        owner: "{{ gogs_uid }}"
+        group: "{{ gogs_uid }}"
+        mode: "0700"
+
+    - name: Write the Gogs config
+      ansible.builtin.template:
+        src: gogs-app.ini.j2
+        dest: "{{ stack_dir }}/gogs/gogs/conf/app.ini"
+        owner: "{{ gogs_uid }}"
+        group: "{{ gogs_uid }}"
+        mode: "0600"
+      notify: Restart Gogs
+
+    - name: Create the Hermes data directory
+      ansible.builtin.file:
+        path: "{{ stack_dir }}/hermes"
+        state: directory
+        owner: "{{ hermes_uid }}"
+        group: "{{ hermes_uid }}"
+        mode: "0700"
+
+    - name: Copy the Compose project
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../stack/"
+        dest: "{{ stack_dir }}/"
+        mode: preserve
+
+    - name: Write the Compose environment
+      ansible.builtin.template:
+        src: stack.env.j2
+        dest: "{{ stack_dir }}/.env"
+        mode: "0600"
+
+    - name: Read the Hermes config
+      ansible.builtin.slurp:
+        src: "{{ stack_dir }}/hermes/config.yaml"
+      register: hermes_config
+      failed_when: false
+
+    - name: Merge the managed settings into the Hermes config
+      ansible.builtin.copy:
+        content: "{{ (hermes_config.content | default('') | b64decode | from_yaml or {}) | combine(hermes_settings, recursive=True) | to_nice_yaml }}"
+        dest: "{{ stack_dir }}/hermes/config.yaml"
+        owner: "{{ hermes_uid }}"
+        group: "{{ hermes_uid }}"
+        mode: "0600"
+      notify: Restart Hermes
+
+    - name: Start the stack
+      community.docker.docker_compose_v2:
+        project_src: "{{ stack_dir }}"
+        profiles: "{{ (['cd'] if doco_poll_url else []) + (['mirror'] if github_mirror_token else []) }}"
+        build: always
+        pull: missing
+        remove_orphans: true
+
+    - name: Create the Gogs admin
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, -u, git, gogs, /app/gogs/gogs, admin, create-user,
+               --config, /data/gogs/conf/app.ini, --admin, --name, "{{ gogs_admin_user }}",
+               --password, "{{ gogs_admin_password }}", --email, "{{ gogs_admin_email }}"]
+        chdir: "{{ stack_dir }}"
+      register: gogs_admin
+      changed_when: gogs_admin.rc == 0
+      failed_when: gogs_admin.rc != 0 and 'already exists' not in gogs_admin.stdout + gogs_admin.stderr
+      until: gogs_admin is not failed
+      retries: 10
+      delay: 3
+      no_log: true
+
+    - name: Read the installed Claude Code version
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, -u, "{{ hermes_uid }}", hermes, /opt/data/claude-cli/bin/claude, --version]
+        chdir: "{{ stack_dir }}"
+      register: claude_installed
+      changed_when: false
+      failed_when: false
+
+    - name: Install Claude Code for Hermes
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, -u, "{{ hermes_uid }}", -e, npm_config_cache=/tmp/npm, hermes,
+               npm, install, --global, --prefix, /opt/data/claude-cli, --allow-scripts=@anthropic-ai/claude-code,
+               "@anthropic-ai/claude-code@{{ claude_code_version }}"]
+        chdir: "{{ stack_dir }}"
+      when: claude_code_version not in claude_installed.stdout
+
+    - name: Install the Claude subscription plugin for Hermes
+      ansible.builtin.command:
+        argv: [docker, compose, exec, -T, -u, "{{ hermes_uid }}", hermes, hermes, plugins, install, claude-subscription-directsdk]
+        chdir: "{{ stack_dir }}"
+        creates: "{{ stack_dir }}/hermes/plugins/claude-subscription-directsdk-experimental"
+      notify: Restart Hermes
+
+  handlers:
+    - name: Restart Hermes
+      community.docker.docker_compose_v2:
+        project_src: "{{ stack_dir }}"
+        services: [hermes]
+        state: restarted
+
+    - name: Restart Gogs
+      community.docker.docker_compose_v2:
+        project_src: "{{ stack_dir }}"
+        services: [gogs]
+        state: restarted
