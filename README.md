@@ -1,6 +1,21 @@
 # freebox-vm
 
-Infrastructure for an Arch Linux ARM VM on a Freebox running Traefik, Gogs, Doco-CD and Hermes Agent in one Docker Compose stack; Hermes runs on the Claude subscription at `STACK_DOMAIN`, Gogs at `git.STACK_DOMAIN`. `image/` builds the VM disk, `terraform/` creates the VM and network objects on the Freebox, and `ansible/` deploys the stack.
+<img src="docs/assets/hero.svg" alt="freebox-vm: Arch Linux ARM on a Freebox, one Docker Compose stack" width="100%">
+
+Infrastructure for an Arch Linux ARM VM on a Freebox, running Traefik, Gogs, Doco-CD, gogs-mirror and Hermes Agent in one Docker Compose stack. Hermes runs on your Claude subscription through Claude Code at `STACK_DOMAIN`, and Gogs at `git.STACK_DOMAIN`.
+
+## Architecture
+
+<img src="docs/assets/architecture.svg" alt="image/ builds the disk, terraform/ creates the VM on the Freebox, ansible/ deploys the Compose stack to the VM" width="100%">
+
+| Directory | Role |
+|---|---|
+| `image/` | Builds the VM disk with mkosi |
+| `terraform/` | Creates the VM and network objects on the Freebox, and the DuckDNS record |
+| `ansible/` | Deploys `stack/` to `/opt/stack` on the VM |
+| `stack/` | Docker Compose stack: Traefik, Gogs, Doco-CD, gogs-mirror, Hermes Agent |
+
+## Configuration
 
 | Variable | Meaning |
 |---|---|
@@ -14,30 +29,77 @@ Infrastructure for an Arch Linux ARM VM on a Freebox running Traefik, Gogs, Doco
 | `GITHUB_MIRROR_TOKEN` | Read-only GitHub token (`Contents: read`, `Metadata: read` on all repositories); `gogs-mirror` creates an hourly, private Gogs pull mirror of every owned, non-fork, non-archived repository, and starts only when the token is set |
 | `terraform/terraform.tfvars` | Non-secret Terraform inputs: `ssh_public_key`, `duckdns_subdomain`, `image_server_url`, and optional `hostname`, `freebox_storage_dir`, `lan_ip`, `freebox_public_ipv4`, sizing |
 
-| Playbook | Effect |
-|---|---|
-| `ansible/playbooks/update.yml` | `pacman -Syu`, reboot if the running kernel was replaced |
-| `ansible/playbooks/stack.yml` | Deploys `stack/` to `/opt/stack`, creates the Gogs admin, installs Claude Code and the Hermes Claude subscription plugin |
+## Ports
 
 | Port | Service |
 |---|---|
 | 80, 443 | Traefik; certificates from Let's Encrypt (TLS-ALPN challenge) |
 | 2222 | Gogs SSH |
 
-1. Build the VM image, about 2 min (needs Docker): `image/build.sh`
-2. Install Terraform: `brew install hashicorp/tap/terraform`
-3. Fill the variables: `cp .env.example .env`, then edit `.env`
-4. Load them: `set -a; . ./.env; set +a`
-5. Copy the Terraform inputs: `cp terraform/terraform.tfvars.example terraform/terraform.tfvars`, then edit it
-6. Serve the image on the LAN at `image_server_url`, in a second terminal, until step 8 finishes: `python3 -m http.server -d image/out 8000`
-7. Initialise Terraform: `terraform -chdir=terraform init`
-8. Create the VM, disk, DHCP lease, port forwards and DuckDNS record: `terraform -chdir=terraform apply`
+## Ansible playbooks
+
+| Playbook | Effect |
+|---|---|
+| `ansible/playbooks/update.yml` | `pacman -Syu`, reboot if the running kernel was replaced |
+| `ansible/playbooks/stack.yml` | Deploys `stack/` to `/opt/stack`, creates the Gogs admin, installs Claude Code and the Hermes Claude subscription plugin |
+
+## Setup
+
+1. Build the VM image, about 2 min (needs Docker):
+   ```sh
+   image/build.sh
+   ```
+2. Install Terraform:
+   ```sh
+   brew install hashicorp/tap/terraform
+   ```
+3. Fill the variables:
+   ```sh
+   cp .env.example .env
+   ```
+   Then edit `.env`.
+4. Load them:
+   ```sh
+   set -a; . ./.env; set +a
+   ```
+5. Copy the Terraform inputs:
+   ```sh
+   cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+   ```
+   Then edit it.
+6. Serve the image on the LAN at `image_server_url`, in a second terminal, until step 8 finishes:
+   ```sh
+   python3 -m http.server -d image/out 8000
+   ```
+7. Initialise Terraform:
+   ```sh
+   terraform -chdir=terraform init
+   ```
+8. Create the VM, disk, DHCP lease, port forwards and DuckDNS record:
+   ```sh
+   terraform -chdir=terraform apply
+   ```
 9. Set `FREEBOX_VM_HOST` to the `vm_lan_ip` output, then repeat step 4.
-10. Install Ansible: `brew install ansible`
-11. Install the collections: `ansible-galaxy collection install -r ansible/requirements.yml`
-12. Enter the directory: `cd ansible`
-13. Apply, in order: `ansible-playbook playbooks/update.yml playbooks/stack.yml`
-14. Log Claude Code in to your Claude subscription, once: `ssh -t <user>@<vm> sudo docker compose --project-directory /opt/stack exec -u 10000 hermes /opt/data/claude-cli/bin/claude auth login`
+10. Install Ansible:
+    ```sh
+    brew install ansible
+    ```
+11. Install the collections:
+    ```sh
+    ansible-galaxy collection install -r ansible/requirements.yml
+    ```
+12. Enter the directory:
+    ```sh
+    cd ansible
+    ```
+13. Apply, in order:
+    ```sh
+    ansible-playbook playbooks/update.yml playbooks/stack.yml
+    ```
+14. Log Claude Code in to your Claude subscription, once:
+    ```sh
+    ssh -t <user>@<vm> sudo docker compose --project-directory /opt/stack exec -u 10000 hermes /opt/data/claude-cli/bin/claude auth login
+    ```
 
 ## Limits
 
