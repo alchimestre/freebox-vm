@@ -2,6 +2,7 @@
 
 ssh_public_key    = "ssh-ed25519 AAAA... key-comment"
 duckdns_subdomain = "example"
+image_server_url  = "http://192.168.1.10:8000"
 
 # Optional overrides:
 # freebox_storage_dir = "SSD/VMs"

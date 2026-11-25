@@ -1,0 +1,13 @@
+#!/bin/sh
+# Classic Arch systemd-boot layout: the ESP is /boot, so pacman kernel upgrades write straight to it.
+set -eu
+
+ln -sf /run/systemd/resolve/stub-resolv.conf "$BUILDROOT/etc/resolv.conf"
+
+systemd_boot="$BUILDROOT/usr/lib/systemd/boot/efi/systemd-bootaa64.efi"
+install -Dm644 "$systemd_boot" "$BUILDROOT/boot/EFI/BOOT/BOOTAA64.EFI"
+install -Dm644 "$systemd_boot" "$BUILDROOT/boot/EFI/systemd/systemd-bootaa64.efi"
+
+# The build container's kernel is not the VM's, so autodetect would drop the virtio drivers.
+kernel_version=$(ls "$BUILDROOT/usr/lib/modules")
+mkosi-chroot mkinitcpio -k "$kernel_version" -S autodetect -g /boot/initramfs-linux.img

@@ -10,22 +10,15 @@ variable "freebox_storage_dir" {
   default     = "SSD/VMs"
 }
 
-variable "debian_image_url" {
-  description = "arm64 Debian cloud image (qcow2) to download to the Freebox."
+variable "image_server_url" {
+  description = "LAN URL the Freebox downloads image/out/freebox-vm.qcow2 from, without a trailing slash, for example http://192.168.1.12:8000."
   type        = string
-  default     = "https://cloud.debian.org/images/cloud/trixie/20261123-2671/debian-13-generic-arm64-20261123-2671.qcow2"
-}
-
-variable "debian_image_checksum" {
-  description = "Checksum of debian_image_url, in the form sha256:<hex>."
-  type        = string
-  default     = "sha256:c7e96fd672cfd7af9ab4412468d911bd7ff5d7b15cbe94ffa4c5df2c72e659c2"
 }
 
 variable "disk_size_gib" {
-  description = "Virtual size of the VM disk in GiB."
+  description = "Virtual size of the VM disk in GiB; raise it later and restart the VM to grow the root filesystem."
   type        = number
-  default     = 110
+  default     = 16
 }
 
 variable "vcpus" {

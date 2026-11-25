@@ -1,0 +1,2 @@
+LABEL=root  /      ext4  rw,relatime  0 1
+/dev/disk/by-partlabel/esp  /boot  vfat  rw,relatime,fmask=0077,dmask=0077  0 2

@@ -1,7 +1,8 @@
 locals {
   bytes_per_gib   = 1024 * 1024 * 1024
   duckdns_domain  = "duckdns.org"
-  image_path      = "${var.freebox_storage_dir}/${basename(var.debian_image_url)}"
+  image_file      = "${path.module}/../image/out/freebox-vm.qcow2"
+  image_path      = "${var.freebox_storage_dir}/freebox-vm-base.qcow2"
   vm_disk_path    = "${var.freebox_storage_dir}/${var.hostname}.qcow2"
   disk_size_bytes = var.disk_size_gib * local.bytes_per_gib
 
@@ -13,16 +14,16 @@ locals {
   }
 }
 
-resource "freebox_remote_file" "debian_image" {
-  source_url       = var.debian_image_url
+resource "freebox_remote_file" "base_image" {
+  source_url       = "${var.image_server_url}/freebox-vm.qcow2"
   destination_path = local.image_path
-  checksum         = var.debian_image_checksum
+  checksum         = "sha256:${filesha256(local.image_file)}"
   parents          = true
 }
 
 resource "freebox_virtual_disk" "vm" {
   path         = local.vm_disk_path
-  resize_from  = freebox_remote_file.debian_image.destination_path
+  resize_from  = freebox_remote_file.base_image.destination_path
   virtual_size = local.disk_size_bytes
 }
 
