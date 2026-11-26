@@ -3,6 +3,17 @@
   vars:
     reboot_timeout_seconds: 600
   tasks:
+    - name: Initialise the pacman keyring with this machine's own master key
+      ansible.builtin.command:
+        argv: [pacman-key, --init]
+        creates: /etc/pacman.d/gnupg/trustdb.gpg
+      register: pacman_keyring
+
+    - name: Trust the Arch Linux and Arch Linux ARM packagers
+      ansible.builtin.command:
+        argv: [pacman-key, --populate]
+      when: pacman_keyring is changed
+
     - name: Upgrade all packages
       community.general.pacman:
         update_cache: true
