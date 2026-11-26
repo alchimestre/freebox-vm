@@ -25,6 +25,10 @@ resource "freebox_virtual_disk" "vm" {
   path         = local.vm_disk_path
   resize_from  = freebox_remote_file.base_image.destination_path
   virtual_size = local.disk_size_bytes
+
+  lifecycle {
+    replace_triggered_by = [freebox_remote_file.base_image]
+  }
 }
 
 resource "freebox_virtual_machine" "vm" {
@@ -39,6 +43,10 @@ resource "freebox_virtual_machine" "vm" {
     hostname       = var.hostname
     ssh_public_key = var.ssh_public_key
   })
+
+  lifecycle {
+    replace_triggered_by = [freebox_virtual_disk.vm]
+  }
 }
 
 resource "freebox_dhcp_lease" "vm" {
