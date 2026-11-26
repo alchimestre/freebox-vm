@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="100%" role="img" aria-labelledby="title desc">
   <title id="title">freebox-vm</title>
-  <desc id="desc">Arch Linux ARM on a Freebox, run as one Docker Compose stack: Traefik, Forgejo, Doco-CD, forgejo-mirror and Hermes Agent.</desc>
+  <desc id="desc">Arch Linux ARM on a Freebox, run as one Docker Compose stack: Traefik, Forgejo, forgejo-mirror and Hermes Agent.</desc>
   <rect x="0" y="0" width="1200" height="320" rx="24" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
   <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
     <text x="60" y="150" font-size="84" font-weight="700" fill="#f0f6fc">freebox-vm</text>
@@ -12,14 +12,11 @@
     <rect x="780" y="82" width="360" height="44" rx="8" fill="#161b22" stroke="#1f6feb" stroke-width="2"/>
     <circle cx="800" cy="104" r="6" fill="#1f6feb"/>
     <text x="820" y="112" font-size="22" fill="#f0f6fc">Forgejo, SSH on port 2222</text>
-    <rect x="780" y="138" width="360" height="44" rx="8" fill="#161b22" stroke="#a371f7" stroke-width="2"/>
-    <circle cx="800" cy="160" r="6" fill="#a371f7"/>
-    <text x="820" y="168" font-size="22" fill="#f0f6fc">Doco-CD, GitOps deploys</text>
-    <rect x="780" y="194" width="360" height="44" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2"/>
-    <circle cx="800" cy="216" r="6" fill="#d29922"/>
-    <text x="820" y="224" font-size="22" fill="#f0f6fc">forgejo-mirror, hourly sync</text>
-    <rect x="780" y="250" width="360" height="44" rx="8" fill="#161b22" stroke="#f78166" stroke-width="2"/>
-    <circle cx="800" cy="272" r="6" fill="#f78166"/>
-    <text x="820" y="280" font-size="22" fill="#f0f6fc">Hermes Agent, Claude Code</text>
+    <rect x="780" y="138" width="360" height="44" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2"/>
+    <circle cx="800" cy="160" r="6" fill="#d29922"/>
+    <text x="820" y="168" font-size="22" fill="#f0f6fc">forgejo-mirror, hourly sync</text>
+    <rect x="780" y="194" width="360" height="44" rx="8" fill="#161b22" stroke="#f78166" stroke-width="2"/>
+    <circle cx="800" cy="216" r="6" fill="#f78166"/>
+    <text x="820" y="224" font-size="22" fill="#f0f6fc">Hermes Agent, Claude Code</text>
   </g>
 </svg>

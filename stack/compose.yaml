@@ -41,21 +41,6 @@ services:
       traefik.http.routers.forgejo.tls.certresolver: le
       traefik.http.services.forgejo.loadbalancer.server.port: "3000"
 
-  doco-cd:
-    image: ghcr.io/kimdre/doco-cd:0.137.0
-    profiles: [cd]
-    restart: unless-stopped
-    environment:
-      GIT_ACCESS_TOKEN: ${DOCO_GIT_TOKEN:-}
-      GIT_AUTH_DOMAINS: "- domains: [forgejo]"
-      POLL_CONFIG: |
-        - url: ${DOCO_POLL_URL:-}
-          reference: main
-          interval: 180
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - doco-data:/data
-
   forgejo-mirror:
     build: ./forgejo-mirror
     profiles: [mirror]
@@ -104,5 +89,4 @@ networks:
 
 volumes:
   letsencrypt:
-  doco-data:
   forgejo-mirror:

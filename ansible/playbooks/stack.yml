@@ -1,4 +1,4 @@
-- name: Deploy Traefik, Forgejo, Doco-CD and Hermes
+- name: Deploy Traefik, Forgejo and Hermes
   hosts: freebox_vm
   vars:
     stack_dir: /opt/stack
@@ -8,8 +8,6 @@
     forgejo_admin_user: "{{ lookup('ansible.builtin.env', 'FORGEJO_ADMIN_USER', default=Undefined) }}"
     forgejo_admin_password: "{{ lookup('ansible.builtin.env', 'FORGEJO_ADMIN_PASSWORD', default=Undefined) }}"
     forgejo_admin_email: "{{ lookup('ansible.builtin.env', 'FORGEJO_ADMIN_EMAIL', default=Undefined) }}"
-    doco_poll_url: "{{ lookup('ansible.builtin.env', 'DOCO_POLL_URL') }}"
-    doco_git_token: "{{ lookup('ansible.builtin.env', 'DOCO_GIT_TOKEN') }}"
     github_mirror_token: "{{ lookup('ansible.builtin.env', 'GITHUB_MIRROR_TOKEN') }}"
     mirror_interval_hours: 1
     seconds_per_hour: 3600
@@ -77,7 +75,7 @@
     - name: Start the stack
       community.docker.docker_compose_v2:
         project_src: "{{ stack_dir }}"
-        profiles: "{{ (['cd'] if doco_poll_url else []) + (['mirror'] if github_mirror_token else []) }}"
+        profiles: "{{ ['mirror'] if github_mirror_token else [] }}"
         build: always
         pull: missing
         remove_orphans: true

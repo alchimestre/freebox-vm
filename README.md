@@ -2,7 +2,7 @@
 
 <img src="docs/assets/hero.svg" alt="freebox-vm: Arch Linux ARM on a Freebox, one Docker Compose stack" width="100%">
 
-Infrastructure for an Arch Linux ARM VM on a Freebox, running Traefik, Forgejo, Doco-CD, forgejo-mirror and Hermes Agent in one Docker Compose stack. Hermes runs on your Claude subscription through Claude Code at `STACK_DOMAIN`, and Forgejo at `git.STACK_DOMAIN`.
+Infrastructure for an Arch Linux ARM VM on a Freebox, running Traefik, Forgejo, forgejo-mirror and Hermes Agent in one Docker Compose stack. Hermes runs on your Claude subscription through Claude Code at `STACK_DOMAIN`, and Forgejo at `git.STACK_DOMAIN`.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ Infrastructure for an Arch Linux ARM VM on a Freebox, running Traefik, Forgejo, 
 | `image/` | Builds the VM disk with mkosi |
 | `terraform/` | Creates the VM and network objects on the Freebox, and the DuckDNS record |
 | `ansible/` | Deploys `stack/` to `/opt/stack` on the VM |
-| `stack/` | Docker Compose stack: Traefik, Forgejo, Doco-CD, forgejo-mirror, Hermes Agent |
+| `stack/` | Docker Compose stack: Traefik, Forgejo, forgejo-mirror, Hermes Agent |
 
 ## Configuration
 
@@ -25,7 +25,6 @@ Infrastructure for an Arch Linux ARM VM on a Freebox, running Traefik, Forgejo, 
 | `STACK_DOMAIN` | Public DNS name, for example `example.duckdns.org`; `git.` must resolve too |
 | `HERMES_USER`, `HERMES_PASSWORD`, `HERMES_SESSION_SECRET` | Hermes Webapp sign-in; secret from `openssl rand -hex 32` |
 | `FORGEJO_ADMIN_USER`, `FORGEJO_ADMIN_PASSWORD`, `FORGEJO_ADMIN_EMAIL`, `FORGEJO_SECRET_KEY` | Forgejo admin account; secret from `openssl rand -hex 32` |
-| `DOCO_POLL_URL`, `DOCO_GIT_TOKEN` | Deployment repository polled by Doco-CD, for example `http://forgejo:3000/<user>/<repo>.git`, and a Forgejo token for it; Doco-CD starts only when `DOCO_POLL_URL` is set |
 | `GITHUB_MIRROR_TOKEN` | Read-only GitHub token (`Contents: read`, `Metadata: read` on all repositories); `forgejo-mirror` creates an hourly, private Forgejo pull mirror of every owned, non-fork, non-archived repository, and starts only when the token is set |
 | `terraform/terraform.tfvars` | Non-secret Terraform inputs: `ssh_public_key`, `duckdns_subdomain`, `image_server_url`, and optional `hostname`, `freebox_storage_dir`, `lan_ip`, `freebox_public_ipv4`, sizing |
 
@@ -106,7 +105,6 @@ Infrastructure for an Arch Linux ARM VM on a Freebox, running Traefik, Forgejo, 
 - The remote user is `freebox` and needs passwordless `sudo`.
 - Let's Encrypt must reach ports 80 and 443 on both names; a shared Freebox IPv4 cannot forward them.
 - Forgejo reserves the user name `admin`; pick another `FORGEJO_ADMIN_USER`.
-- Doco-CD deploys whatever its repository describes through the Docker socket; only point it at a repository you control.
 - Forgejo stores `GITHUB_MIRROR_TOKEN` with each mirror of a private GitHub repository; use a read-only, fine-grained token.
 - New mirrors are created private. An existing Forgejo repository with the same name is never modified; if it is public, `forgejo-mirror` logs it, and you make it private in its Forgejo settings.
 - Mirrors are never deleted: a repository removed, archived or turned into a fork on GitHub stays in Forgejo.
